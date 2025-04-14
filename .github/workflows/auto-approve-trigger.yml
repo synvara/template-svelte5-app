@@ -23,8 +23,7 @@ jobs:
     with:
       pr_number: ${{ github.event.workflow_run.pull_requests[0].number }}
       pr_head_sha: ${{ github.event.workflow_run.head_sha }}
-      # Set this to true if you're still having permissions issues
-      skip_status_checks: true
+
       # Workflow names to check (both CI and Docker need to pass)
       check_workflow_name: ${{ github.event.workflow_run.name }}
     secrets:

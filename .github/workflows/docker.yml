@@ -28,6 +28,9 @@ jobs:
   docker:
     name: Docker Image Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -77,3 +80,7 @@ jobs:
           outputs: ${{ github.event_name == 'pull_request' && 'type=cacheonly' || 'type=registry' }}
           cache-from: type=registry,ref=${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE_NAME || github.event.repository.name }}:buildcache
           cache-to: ${{ github.event_name != 'pull_request' && format('type=registry,ref={0}/{1}:buildcache,mode=max', vars.DOCKER_USER, vars.DOCKER_IMAGE_NAME || github.event.repository.name) || '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Svelte 5 application template
+            org.opencontainers.image.licenses=MIT

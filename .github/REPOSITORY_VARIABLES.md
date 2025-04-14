@@ -15,7 +15,6 @@ When using this template, you'll need to set several repository variables and se
 | Secret Name            | Description                              | Example Value                                                         | Required               |
 | ---------------------- | ---------------------------------------- | --------------------------------------------------------------------- | ---------------------- |
 | `DOCKER_PAT`           | Docker Hub Personal Access Token         | `dckr_pat_xxxxxxxxxxxx`                                               | Yes (for Docker)       |
-| `GHCR_PAT`             | GitHub Container Registry PAT            | `github_pat_xxxxxxxxxxxx`                                             | Yes (for GHCR)         |
 | `APPROVER_APP_ID`      | GitHub App ID for PR approver            | `12345`                                                               | Yes (for auto-approve) |
 | `APPROVER_PRIVATE_KEY` | GitHub App private key for PR approver   | `-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----` | Yes (for auto-approve) |
 | `VERCEL_TOKEN`         | Vercel API token for preview deployments | `xxxxxxxxxxxxxxx`                                                     | Yes (for preview)      |
@@ -56,8 +55,6 @@ If you don't want to use Docker cloud builders, you can modify the `docker.yml` 
 
 ### GitHub Container Registry
 
-For the preview workflow, you'll need:
+The workflow now uses GitHub's built-in `GITHUB_TOKEN` for authentication to GitHub Container Registry, so no additional secrets are required.
 
-1. `GHCR_PAT` - A GitHub Personal Access Token with `write:packages` permission
-
-This token allows the workflow to push Docker images to GitHub Container Registry. Create a PAT with appropriate permissions at GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens.
+This approach is recommended by GitHub and provides better security by avoiding the use of long-lived personal access tokens. The images are automatically connected to your repository with appropriate metadata through OCI labels.

@@ -21,6 +21,11 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
+# Add metadata labels
+LABEL org.opencontainers.image.source="https://github.com/synvara/template-svelte5-app"
+LABEL org.opencontainers.image.description="Svelte 5 application template"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # Copy the output directories from the builder
 COPY --from=builder /app/.svelte-kit/output/server /app/server
 COPY --from=builder /app/.svelte-kit/output/client /app/client

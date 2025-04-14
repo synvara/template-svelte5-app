@@ -1,0 +1,79 @@
+name: Docker Build
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'package.json'
+      - 'bun.lockb'
+      - 'src/**'
+      - 'static/**'
+      - '.github/workflows/docker.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'package.json'
+      - 'bun.lockb'
+      - 'src/**'
+      - 'static/**'
+      - '.github/workflows/docker.yml'
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  docker:
+    name: Docker Image Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from package.json
+        id: package_version
+        run: |
+          VERSION=$(cat package.json | jq -r '.version')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PAT }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: cloud
+          # Use a repository variable for the buildx endpoint
+          # If not set, this will need to be manually updated
+          endpoint: ${{ vars.DOCKER_BUILDX_ENDPOINT }}
+          install: true
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE_NAME || github.event.repository.name }}
+          tags: |
+            # Use semantic version from package.json
+            type=raw,value=v${{ steps.package_version.outputs.version }}
+            # Use git sha for precise tracing to commits
+            type=sha,format=short
+            # Only tag as latest on main/master branch non-PR builds
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          # Use tags from the metadata action
+          tags: ${{ steps.meta.outputs.tags }}
+          # For pull requests, export results to the build cache.
+          # Otherwise, push to a registry.
+          outputs: ${{ github.event_name == 'pull_request' && 'type=cacheonly' || 'type=registry' }}
+          cache-from: type=registry,ref=${{ vars.DOCKER_USER }}/${{ vars.DOCKER_IMAGE_NAME || github.event.repository.name }}:buildcache
+          cache-to: ${{ github.event_name != 'pull_request' && format('type=registry,ref={0}/{1}:buildcache,mode=max', vars.DOCKER_USER, vars.DOCKER_IMAGE_NAME || github.event.repository.name) || '' }}

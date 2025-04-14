@@ -1,0 +1,73 @@
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # Job 1: Linting and Formatting Checks
+  lint:
+    name: Lint and Format Check # Name shown in GitHub UI for the status check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Bun # Use the official Bun setup action
+        uses: oven-sh/setup-bun@v1
+        # By default, it installs the latest version of Bun
+      - name: Install dependencies
+        # Use 'bun install --frozen-lockfile' which is similar to 'npm ci'
+        # It installs based on bun.lockb and fails if changes are needed.
+        run: bun install --frozen-lockfile
+      - name: Check formatting and lint code
+        # Use 'bun run lint' - assumes your 'lint' script in package.json
+        # correctly runs both 'prettier --check' and 'eslint .'
+        run: bun run lint
+
+  # Job 2: TypeScript Type Checking
+  typecheck:
+    name: Type Check # Status check name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Run Svelte Check
+        # Use 'bun run check' - assumes 'check' script runs svelte-check
+        run: bun run check
+
+  # Job 3: Unit Tests
+  unit-test:
+    name: Unit Tests # Status check name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Run Vitest (Single Run)
+        # Use 'bun run test' - this should run 'vitest --run' for CI
+        run: bun run test
+
+  # Job 4: Build Check
+  build-check:
+    name: Build Check # Status check name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Run build
+        # Use 'bun run build' - assumes 'build' script runs 'vite build'
+        run: bun run build

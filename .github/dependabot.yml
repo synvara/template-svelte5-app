@@ -1,0 +1,33 @@
+# .github/dependabot.yml
+version: 2
+updates:
+  # Enable npm dependency updates
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    # Group all minor and patch updates together
+    groups:
+      minor-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+    # Set review requirements and limits
+    open-pull-requests-limit: 10
+    labels:
+      - 'dependencies'
+      - 'automerge'
+    ignore:
+      # Ignore major version updates as they might require manual intervention
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  # Keep GitHub Actions up-to-date
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'ci'
+      - 'dependencies'
+      - 'automerge'

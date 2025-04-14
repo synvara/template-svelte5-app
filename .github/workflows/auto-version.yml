@@ -1,0 +1,115 @@
+name: Auto Version Bump
+
+on:
+  # Only trigger on PR merges to main or master
+  pull_request:
+    types: [closed]
+    branches: [main, master]
+
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      version-type:
+        description: 'Type of version bump to perform'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  auto-version:
+    # Only run on merged PRs (not closed without merge)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    name: Update Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Setup Git User
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+
+      - name: Determine Version Type from Commits
+        id: version-type
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          # Default to patch for safety
+          TYPE="patch"
+
+          # Look at all commits in the PR
+          PR_COMMITS=$(git log origin/${{ github.base_ref }}..${{ github.sha }} --pretty=format:"%s")
+          echo "PR Commits:"
+          echo "$PR_COMMITS"
+
+          # Check for conventional commit prefixes
+          if echo "$PR_COMMITS" | grep -q '^feat\!:' || echo "$PR_COMMITS" | grep -q '^BREAKING CHANGE:'; then
+            TYPE="major"
+          elif echo "$PR_COMMITS" | grep -q '^feat:'; then
+            TYPE="minor"
+          elif echo "$PR_COMMITS" | grep -q '^fix:'; then
+            TYPE="patch"
+          fi
+
+          echo "Determined version bump type: $TYPE"
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+
+      - name: Bump Version
+        id: bump-version
+        run: |
+          # Get current version from package.json
+          CURRENT_VERSION=$(cat package.json | jq -r '.version')
+          echo "Current version: $CURRENT_VERSION"
+
+          # Determine version type (from input or commit analysis)
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            TYPE="${{ github.event.inputs.version-type }}"
+          else
+            TYPE="${{ steps.version-type.outputs.type }}"
+          fi
+          echo "Version bump type: $TYPE"
+
+          # Split version into components
+          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+
+          # Bump version according to type
+          if [ "$TYPE" == "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$TYPE" == "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          # Create new version
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          # Update package.json
+          cat package.json | jq ".version = \"$NEW_VERSION\"" > package.json.new
+          mv package.json.new package.json
+
+      - name: Commit and Push Version Bump
+        run: |
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.bump-version.outputs.version }}"
+          git push

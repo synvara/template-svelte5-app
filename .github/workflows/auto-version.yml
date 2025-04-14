@@ -112,13 +112,11 @@ jobs:
       - name: Create Branch for Version Bump
         id: create-branch
         run: |
-          # Create a new branch for the version bump
-          # Generate a timestamp-based ID for the middle segment that matches the pattern [A-Za-z]+-[0-9]+
-          TIMESTAMP=$(date +%s)
-          ISSUE_ID="VER-${TIMESTAMP}"
+          # Generate a ticket ID for the version bump
+          RELEASE_ID="RELEASE-$(date +%s)"
 
-          # Use format that matches branch naming rules: chore/VER-timestamp/version-bump
-          BRANCH_NAME="chore/${ISSUE_ID}/version-bump-${{ steps.bump-version.outputs.version }}"
+          # Create a new branch for the version bump following the required format
+          BRANCH_NAME="release/${RELEASE_ID}/v${{ steps.bump-version.outputs.version }}"
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
           git checkout -b $BRANCH_NAME
@@ -131,9 +129,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'chore: bump version to ${{ steps.bump-version.outputs.version }}'
-          title: 'Version Bump: ${{ steps.bump-version.outputs.version }}'
+          title: 'Release v${{ steps.bump-version.outputs.version }}'
           body: |
-            ## Automated Version Bump
+            ## Version Release
 
             This PR was created automatically by the Auto Version Bump workflow.
 
@@ -146,4 +144,5 @@ jobs:
           labels: |
             automated-pr
             version-bump
+            release
           delete-branch: true

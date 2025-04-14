@@ -6,6 +6,11 @@ on:
     paths:
       - 'package.json'
 
+# Prevent concurrent version releases
+concurrency:
+  group: release-${{ github.sha }}
+  cancel-in-progress: false
+
 jobs:
   check-version:
     name: Check Version Change

@@ -19,6 +19,11 @@ on:
           - minor
           - major
 
+# Prevent concurrent version bumps
+concurrency:
+  group: version-${{ github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   auto-version:
     # Only run on merged PRs (not closed without merge)

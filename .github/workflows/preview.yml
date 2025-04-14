@@ -12,6 +12,12 @@ on:
       - 'src/**'
       - 'static/**'
 
+# Prevent redundant builds for the same PR
+# Only run the latest version when multiple triggers occur
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   preview:
     name: Build and Deploy Preview

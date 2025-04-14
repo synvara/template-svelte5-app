@@ -13,11 +13,23 @@ name: 'CodeQL Advanced'
 
 on:
   push:
-    branches: ['main']
+    branches: ['main', 'master']
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '.github/REPOSITORY_VARIABLES.md'
   pull_request:
-    branches: ['main']
+    # Only run on PRs that target main or master
+    branches: ['main', 'master']
   schedule:
     - cron: '43 9 * * 0'
+
+# Prevent duplicate runs on the same PR, cancel in-progress runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:

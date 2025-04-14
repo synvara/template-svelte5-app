@@ -6,7 +6,7 @@ on:
     types:
       - completed
 
-# Add a comments at the top of the file to explain how to configure the workflow
+# Add a comment at the top of the file to explain how to configure the workflow
 # for other organizations when using this template
 # To customize this workflow for your organization:
 # 1. Create a repository variable PR_APPROVE_WORKFLOW_REPO with the full path to your reusable workflow

@@ -144,10 +144,14 @@ jobs:
 
           After merging this PR, a new GitHub release will be created automatically." \
             --base "${{ github.event.repository.default_branch }}" \
-            --head "${{ steps.create-branch.outputs.branch_name }}" \
-            --label "automated-pr,version-bump,release")
+            --head "${{ steps.create-branch.outputs.branch_name }}")
 
           echo "pr_url=$pr_url" >> $GITHUB_OUTPUT
           echo "Created PR: $pr_url"
+
+          # Try to add labels if they exist (won't fail if they don't)
+          gh pr edit "$pr_url" --add-label "automated-pr" || echo "Label 'automated-pr' not found, skipping"
+          gh pr edit "$pr_url" --add-label "version-bump" || echo "Label 'version-bump' not found, skipping"
+          gh pr edit "$pr_url" --add-label "release" || echo "Label 'release' not found, skipping"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

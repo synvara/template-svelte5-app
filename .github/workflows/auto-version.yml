@@ -109,40 +109,45 @@ jobs:
           cat package.json | jq ".version = \"$NEW_VERSION\"" > package.json.new
           mv package.json.new package.json
 
-      - name: Create Branch for Version Bump
+      - name: Create Branch and Push
         id: create-branch
         run: |
-          # Generate a ticket ID for the version bump
-          RELEASE_ID="RELEASE-$(date +%s)"
+          # Generate a unique ID for the branch
+          UNIQUE_ID=$(date +%s)
 
-          # Create a new branch for the version bump following the required format
-          BRANCH_NAME="release/${RELEASE_ID}/v${{ steps.bump-version.outputs.version }}"
+          # Create a new branch for the version bump
+          BRANCH_NAME="release/RELEASE-${UNIQUE_ID}/v${{ steps.bump-version.outputs.version }}"
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
+          # Create a new branch from the current HEAD
           git checkout -b $BRANCH_NAME
+
+          # Add and commit the changes
           git add package.json
           git commit -m "chore: bump version to ${{ steps.bump-version.outputs.version }}"
-          git push --set-upstream origin $BRANCH_NAME
+
+          # Push without force
+          git push origin $BRANCH_NAME
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: bump version to ${{ steps.bump-version.outputs.version }}'
-          title: 'Release v${{ steps.bump-version.outputs.version }}'
-          body: |
-            ## Version Release
+        id: create-pr
+        run: |
+          # Use GitHub CLI to create the PR
+          pr_url=$(gh pr create \
+            --title "Release v${{ steps.bump-version.outputs.version }}" \
+            --body "## Version Release
 
-            This PR was created automatically by the Auto Version Bump workflow.
+          This PR was created automatically by the Auto Version Bump workflow.
 
-            - New version: **v${{ steps.bump-version.outputs.version }}**
-            - Bump type: **${{ github.event.inputs.version-type || steps.version-type.outputs.type }}**
+          - New version: **v${{ steps.bump-version.outputs.version }}**
+          - Bump type: **${{ github.event.inputs.version-type || steps.version-type.outputs.type }}**
 
-            After merging this PR, a new GitHub release will be created automatically.
-          branch: ${{ steps.create-branch.outputs.branch_name }}
-          base: ${{ github.event.repository.default_branch }}
-          labels: |
-            automated-pr
-            version-bump
-            release
-          delete-branch: true
+          After merging this PR, a new GitHub release will be created automatically." \
+            --base "${{ github.event.repository.default_branch }}" \
+            --head "${{ steps.create-branch.outputs.branch_name }}" \
+            --label "automated-pr,version-bump,release")
+
+          echo "pr_url=$pr_url" >> $GITHUB_OUTPUT
+          echo "Created PR: $pr_url"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

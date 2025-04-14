@@ -8,7 +8,7 @@ export default defineConfig({
 		sveltekit(), // Put the Codecov vite plugin after all other plugins
 		codecovVitePlugin({
 			enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
-			bundleName: process.env.CODECOV_BUNDLE_NAME,
+			bundleName: 'template-svelte5-app',
 			uploadToken: process.env.CODECOV_TOKEN
 		})
 	],

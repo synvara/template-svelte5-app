@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -147,49 +147,30 @@ jobs:
           # Push without force
           git push origin $BRANCH_NAME
 
-      - name: Create Issue for Manual PR Creation
-        id: create-issue
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Create issue content
-          TITLE="Version Bump: v${{ steps.bump-version.outputs.version }} - Create PR"
-          BODY="## Version Bump Ready
-
-          The auto-version workflow has created a new branch with version bump changes.
-
-          ### Details:
-          - **New version**: v${{ steps.bump-version.outputs.version }}
-          - **Bump type**: ${{ github.event.inputs.version-type || steps.version-type.outputs.type }}
-          - **Branch name**: \`${{ steps.create-branch.outputs.branch_name }}\`
-
-          ### Next steps:
-          Please create a pull request from this branch to merge these changes into the main branch.
-
-          You can [create the PR here](https://github.com/${{ github.repository }}/compare/${{ github.event.repository.default_branch }}...${{ steps.create-branch.outputs.branch_name }}?quick_pull=1&title=Release%20v${{ steps.bump-version.outputs.version }})
-
-          Suggested PR settings:
-          - **Title**: Release v${{ steps.bump-version.outputs.version }}
-          - **Body**:
-          \`\`\`
+          # Construct the PR body
+          PR_BODY=$(cat <<-EOF
           ## Version Release
 
-          This PR was created from the auto-versioning workflow.
+          This PR was created automatically by the auto-versioning workflow.
 
           - New version: v${{ steps.bump-version.outputs.version }}
           - Bump type: ${{ github.event.inputs.version-type || steps.version-type.outputs.type }}
 
-          After merging this PR, a new GitHub release will be created automatically.
-          \`\`\`
+          Merging this PR will trigger the release workflow to create a new GitHub release.
+          EOF
+          )
 
-          After merging the PR, the release workflow will automatically create a GitHub release."
+          # Create the pull request
+          gh pr create \\
+            --base "${{ github.event.repository.default_branch }}" \\
+            --head "${{ steps.create-branch.outputs.branch_name }}" \\
+            --title "Release v${{ steps.bump-version.outputs.version }}" \\
+            --body "$PR_BODY"
 
-          # Create the issue using GitHub CLI
-          issue_url=$(gh issue create --title "$TITLE" --body "$BODY")
-
-          # Try to add labels (won't fail if they don't exist)
-          gh issue edit "$issue_url" --add-label "automated" || echo "Label 'automated' not found, skipping"
-          gh issue edit "$issue_url" --add-label "version-bump" || echo "Label 'version-bump' not found, skipping"
-
-          echo "issue_url=$issue_url" >> $GITHUB_OUTPUT
-          echo "Created issue: $issue_url"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Add labels if they exist (optional, won't fail if labels don't exist)
+          gh pr edit ${{ steps.create-branch.outputs.branch_name }} --add-label "automated" || echo "Label 'automated' not found, skipping"
+          gh pr edit ${{ steps.create-branch.outputs.branch_name }} --add-label "version-bump" || echo "Label 'version-bump' not found, skipping"

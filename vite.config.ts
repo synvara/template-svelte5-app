@@ -7,9 +7,8 @@ export default defineConfig({
 	plugins: [
 		sveltekit(), // Put the Codecov vite plugin after all other plugins
 		codecovVitePlugin({
-			enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
-			bundleName: 'template-svelte5-app',
-			uploadToken: process.env.CODECOV_TOKEN
+			enableBundleAnalysis: true,
+			bundleName: 'template-svelte5-app'
 		})
 	],
 	test: {
@@ -18,6 +17,9 @@ export default defineConfig({
 			reporter: ['text', 'json', 'html'],
 			reportsDirectory: './coverage'
 		},
+		// Add JUnit reporter
+		reporters: ['default', 'junit'],
+		outputFile: 'test-report.junit.xml',
 		workspace: [
 			{
 				extends: './vite.config.ts',
